@@ -757,11 +757,11 @@ def _progress_bar(step: int, n_iterations: int, **kwargs) -> None:
     sys.stdout.flush()
 
 
-def _export2csv(data: dict, file_name: str = 'ga_progress.csv', wd: str = None) -> None:
+def _export2csv(data: dict, file_name: str = None, wd: str = None) -> None:
     """Export `dict`-data as `*.csv`-file.
 
     :param data: data
-    :param file_name: file name, defaults to 'ga_progress.csv'
+    :param file_name: file name, defaults to None
     :param wd: working directory, defaults to None
 
     :type data: dict
@@ -772,6 +772,7 @@ def _export2csv(data: dict, file_name: str = 'ga_progress.csv', wd: str = None) 
     """
     # optional arguments: output file
     wd = wd or os.getcwd()
+    file_name = file_name or 'ga_progress.csv'
     if not file_name.endswith('.csv'):
         file_name += '.csv'
     file = os.path.join(wd, file_name)
