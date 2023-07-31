@@ -414,7 +414,9 @@ class GeneticAlgorithm:
 
     """Output data"""
 
-    def output_update(self, population: np.ndarray, best_pool: np.ndarray, deficit: float) -> tuple:
+    def output_update(
+            self, population: np.ndarray, best_pool: np.ndarray, deficit: float
+    ) -> typing.Tuple[np.ndarray, typing.Union[None, np.ndarray]]:
         """Update output data, consisting of the best person and optionally the pool of best people based on this best
         person and the pool criteria.
 
