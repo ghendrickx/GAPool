@@ -111,7 +111,7 @@ class GeneticAlgorithm:
         # set other settings
         self.n_iterations: int = self._set_iterations(n_iterations)
         self.c_type: str = self._settings['crossover_type']
-        self.n_no_improve: int = int(self._settings['max_no_improve'] or self.n_iterations + 1)
+        self.max_no_improve: int = int(self._settings['max_no_improve'] or self.n_iterations + 1)
 
     """Set variables"""
 
@@ -428,6 +428,8 @@ class GeneticAlgorithm:
 
         :return: best person, and pool of best people (optional)
         :rtype: tuple
+
+        :raises AssertionError: if best pool's `deficit` is not in (0, 1)
         """
         # best person
         person = population[0].copy()
@@ -513,8 +515,6 @@ class GeneticAlgorithm:
         # return progress data
         return data
 
-
-    # TODO: Consider writing the data to a (temporary) file instead of keeping it in memory
     def progress_update(
             self, population: np.ndarray, progress_details: dict, progress_data: dict = None, **kwargs
     ) -> dict:
@@ -558,10 +558,6 @@ class GeneticAlgorithm:
 
         :raises ValueError: if `best_pool` is not determined while requested to output
         """
-        # optional arguments
-        best_fitness: float = kwargs.get('best_fitness', min(population[:, self.dim]))
-        best_pool: typing.Union[np.ndarray, None] = kwargs.get('best_pool')
-
         # collect progress data
         data = self._collect_progress_data(population, progress_details, **kwargs)
 
@@ -583,8 +579,7 @@ class GeneticAlgorithm:
 
         :param kwargs: execution settings
             max_iterations: overwrite the maximum number of iterations, defaults to None
-            n_no_improve: overwrite the maximum number of iterations without improving performance, defaults to
-                None
+            max_no_improve: overwrite the maximum number of iterations without improving performance, defaults to None
 
             output_pool: include a pool of similarly performing people (or samples), defaults to False
             output_pool_deficit: relative difference in fitness with the "best person" to be allowed in the
@@ -607,7 +602,7 @@ class GeneticAlgorithm:
 
         :type kwargs: optional
             max_iterations: int
-            n_no_improve: int
+            max_no_improve: int
 
             output_pool: bool
             output_pool_deficit: float
@@ -622,8 +617,8 @@ class GeneticAlgorithm:
         """
         # execution settings
         # > iterations
-        self.n_iterations = self._set_iterations(kwargs.get('max_iterations', self.n_iterations))
-        self.n_no_improve = int(kwargs.get('n_no_improve', self.n_no_improve))
+        n_iterations: int = kwargs.get('max_iterations', self.n_iterations)
+        max_no_improve: int = kwargs.get('max_no_improve', self.max_no_improve)
         # > output
         output_pool: bool = kwargs.get('output_pool', False)
         output_pool_deficit: float = kwargs.get('output_pool_deficit', .1)
@@ -651,9 +646,9 @@ class GeneticAlgorithm:
         )
 
         # evolution
-        for t in range(self.n_iterations):
+        for t in range(n_iterations):
             if progress_bar:
-                _progress_bar(t, self.n_iterations, bar_length=progress_bar_length)
+                _progress_bar(t, n_iterations, bar_length=progress_bar_length)
 
             # sort population
             population = self.sort_population(population)
@@ -667,7 +662,7 @@ class GeneticAlgorithm:
             # update progress data
             progress_data = self.progress_update(
                 population, progress_details, progress_data,
-                best_fitness=best_person[-1], best_pool=best_pool
+                best_fitness=best_person[self.dim], best_pool=best_pool
             )
 
             # probability of selection
@@ -688,21 +683,23 @@ class GeneticAlgorithm:
             mutations = [self.mutate(p) for p in parents]
 
             # new generation
-            assert self.pop_size == len(elites) + len(replicates) + len(crossovers) + len(mutations)
+            pop_size = len(elites) + len(replicates) + len(crossovers) + len(mutations)
+            assert self.pop_size == pop_size, \
+                f'Population size is not ensured: {self.pop_size} =/= {pop_size}'
             population = np.concatenate([
                 elites, replicates, crossovers, mutations
             ]).reshape((self.pop_size, self.dim + 1))
 
             # no improvement
-            if n_no_improve >= self.n_no_improve:
+            if n_no_improve >= max_no_improve:
                 if progress_bar:
-                    _progress_bar(self.n_iterations, self.n_iterations, bar_length=progress_bar_length)
+                    _progress_bar(n_iterations, n_iterations, bar_length=progress_bar_length)
                     time.sleep(.1)
                 _LOG.warning(f'{n_no_improve} iterations without improvement: search halted after {t + 1} iterations.')
                 break
 
-        if progress_bar and n_no_improve < self.n_no_improve:
-            _progress_bar(self.n_iterations, self.n_iterations, bar_length=progress_bar_length)
+        if progress_bar and n_no_improve < max_no_improve:
+            _progress_bar(n_iterations, n_iterations, bar_length=progress_bar_length)
 
         # sort population
         population = self.sort_population(population)
@@ -712,7 +709,7 @@ class GeneticAlgorithm:
         # update progress data
         progress_data = self.progress_update(
             population, progress_details, progress_data,
-            best_fitness=best_person[-1], best_pool=best_pool
+            best_fitness=best_person[self.dim], best_pool=best_pool
         )
 
         # export progress details
