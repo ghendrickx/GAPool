@@ -124,25 +124,47 @@ class GeneticAlgorithm:
         :return: array of variable types
         :rtype: list
 
-        :raises AssertionError: if length of `var_types` mismatches dimensionality
-        :raises AssertionError: if unknown variable types are provided
+        :raises ValueError: if length of `var_types` mismatches dimensionality
+        :raises ValueError: if any invalid variable types are provided
         """
         _var_types = ('bool', 'int', 'float')
 
-        # array of variable types
-        if not isinstance(var_types, str):
-            assert len(var_types) == self.dim, \
-                f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}.'
-            assert all(vt in _var_types for vt in var_types), \
-                f'Not all variable types allowed: {var_types} must be all in {_var_types}.'
-            return list(var_types)
+        def set_single_var_type(var_type: str) -> str:
+            """Check, modify, and return per variable type.
+
+            :param var_type: variable type
+            :type var_type: str
+
+            :return: valid variable type
+            :rtype: str
+
+            :raises ValueError: if `var_type` is invalid
+            """
+            # check validity variable type
+            if var_type not in _var_types:
+                msg = f'Invalid variable type: {var_types} not in {_var_types}.'
+                raise ValueError(msg)
+
+            # convert 'bool' to 'int'
+            if var_type == 'bool':
+                var_type = 'int'
+
+            # return valid variable type
+            return var_type
 
         # single variable type
-        assert var_types in _var_types, \
-            f'Unknown variable type: {var_types} not in {_var_types}.'
-        if var_types == 'bool':
-            var_types = 'int'
-        return [var_types] * self.dim
+        if isinstance(var_types, str):
+            # return list of variable types
+            return [set_single_var_type(var_types)] * self.dim
+
+        # list of variable types
+        if not len(var_types) == self.dim:
+            # assert correct dimensionality
+            if not len(var_types) == self.dim:
+                msg = f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}.'
+                raise ValueError(msg)
+            # return list of variable types
+            return [set_single_var_type(vt) for vt in var_types]
 
     def _set_variable_bounds(
             self, var_bounds: typing.Collection, var_types: typing.Union[str, typing.Collection]
