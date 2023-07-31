@@ -77,8 +77,7 @@ class GeneticAlgorithm:
         """
         # function must be callable
         if not callable(function):
-            msg = f'Fitness\' function must be callable: `function` of type {type(function)}'
-            raise TypeError(msg)
+            raise TypeError(f'Fitness\' function must be callable: `function` of type {type(function)}')
 
         # initiate object
         self.func = function
@@ -143,8 +142,7 @@ class GeneticAlgorithm:
             """
             # check validity variable type
             if var_type not in _var_types:
-                msg = f'Invalid variable type: {var_types} not in {_var_types}.'
-                raise ValueError(msg)
+                raise ValueError(f'Invalid variable type: {var_types} not in {_var_types}')
 
             # convert 'bool' to 'int'
             if var_type == 'bool':
@@ -162,8 +160,7 @@ class GeneticAlgorithm:
         if not len(var_types) == self.dim:
             # assert correct dimensionality
             if not len(var_types) == self.dim:
-                msg = f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}.'
-                raise ValueError(msg)
+                raise ValueError(f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}')
             # return list of variable types
             return [set_single_var_type(vt) for vt in var_types]
 
@@ -187,8 +184,7 @@ class GeneticAlgorithm:
         # assert correct dimensionality
         var_bounds = np.reshape(var_bounds, (-1, 2))
         if not len(var_bounds) == self.dim:
-            msg = f'Length of `var_bounds` mismatches dimensionality: {len(var_bounds)} =/= {self.dim}'
-            raise ValueError(msg)
+            raise ValueError(f'Length of `var_bounds` mismatches dimensionality: {len(var_bounds)} =/= {self.dim}')
 
         # return variable boundaries
         return [[0, 1] if vt == 'bool' else [min(vb), max(vb)] for vb, vt in zip(var_bounds, var_types)]
@@ -253,20 +249,20 @@ class GeneticAlgorithm:
         :raises ValueError: if not all ratios are in [0, 1]
         :raises ValueError: if `crossover_type` is unknown
         """
+        # validity of probabilities
         probabilities = ('crossover_probability', 'mutation_probability')
         if not all(0 <= settings[k] <= 1 for k in probabilities):
-            msg = f'Not all probabilities are in [0, 1]: {settings}'
-            raise ValueError(msg)
+            raise ValueError(f'Not all probabilities are in [0, 1]: {settings}')
 
+        # validity of ratios
         ratios = ('elite_ratio', 'replicate_ratio', 'exploration_ratio', 'parent_ratio')
         if not all(0 <= settings[k] <= 1 for k in ratios):
-            msg = f'Not all ratios are in [0, 1]: {settings}'
-            raise ValueError(msg)
+            raise ValueError(f'Not all ratios are in [0, 1]: {settings}')
 
+        # validity of crossover-types
         crossover_types = ('index', 'slice', 'uniform')
         if settings['crossover_type'] not in crossover_types:
-            msg = f'Unknown `crossover_type`: {settings["crossover_type"]} not in {crossover_types}'
-            raise ValueError(msg)
+            raise ValueError(f'Unknown `crossover_type`: {settings["crossover_type"]} not in {crossover_types}')
 
     """Genetic operations: Crossover"""
 
@@ -310,10 +306,9 @@ class GeneticAlgorithm:
             child_1[r < .5] = parent_2[r < .5]
             child_2[r < .5] = parent_1[r < .5]
 
-        # unknown crossover type
+        # unknown crossover-type
         else:
-            msg = f'Unknown crossover-type: {self.c_type} (see documentation)'
-            raise ValueError(msg)
+            raise ValueError(f'Unknown crossover-type: {self.c_type} (see documentation)')
 
         # return children
         return child_1, child_2
@@ -365,8 +360,7 @@ class GeneticAlgorithm:
 
         # unknown variable type
         else:
-            msg = f'Unknown variable-type: {var_type}.'
-            raise ValueError(msg)
+            raise ValueError(f'Unknown variable-type: {var_type}')
 
     def mutate(self, parent: np.ndarray) -> np.ndarray:
         """Mutation operation. If no variable boundaries (i.e. `bounds`) are defined, the global variable boundaries are
@@ -479,7 +473,7 @@ class GeneticAlgorithm:
         else:
             # update best pool's people
             assert 0 < deficit < 1, \
-                f'Best pool\'s `deficit` must be in (0, 1), {deficit} given.'
+                f'Best pool\'s `deficit` must be in (0, 1), {deficit} given'
             # remove unfit persons
             pool = self.output_pool(best_pool, person[self.dim], deficit)
             # add fit persons
@@ -507,8 +501,12 @@ class GeneticAlgorithm:
         :raises AssertionError: if best pool's `deficit` is not in (0, 1)
         """
         assert 0 < deficit < 1, \
-            f'Best pool\'s fitness must be in (0, 1), {deficit} given.'
+            f'Best pool\'s fitness must be in (0, 1), {deficit} given'
+
+        # people's fitnesses
         fitness = population[:, self.dim]
+
+        # selection of people with sufficient fitness
         return population[np.where(abs(fitness - best_fitness) < deficit * abs(best_fitness))].copy()
 
     """Progress data"""
@@ -560,8 +558,7 @@ class GeneticAlgorithm:
                 pass
             # best pool is empty: raise error
             if len(best_pool) == 0:
-                msg = f'No best pool is determined: Cannot store its data.'
-                raise ValueError(msg)
+                raise ValueError('No best pool is determined: Cannot store its data')
             # update best pool's fitness
             else:
                 if progress_details in ('pool', 'all'):
@@ -685,8 +682,7 @@ class GeneticAlgorithm:
         output_pool: bool = kwargs.get('output_pool', False)
         output_pool_deficit: float = kwargs.get('output_pool_deficit', .1)
         if not (0 < output_pool_deficit < 1):
-            msg = f'Best pool\'s `deficit` must be in (0, 1), {output_pool_deficit} given.'
-            raise ValueError(msg)
+            raise ValueError(f'Best pool\'s `deficit` must be in (0, 1), {output_pool_deficit} given')
         # > progress
         progress_bar: bool = kwargs.get('progress_bar', False)
         progress_bar_length: int = kwargs.get('progress_bar_length', 50)
@@ -760,7 +756,7 @@ class GeneticAlgorithm:
                 if progress_bar:
                     _progress_bar(n_iterations, n_iterations, bar_length=progress_bar_length)
                     time.sleep(.1)
-                _LOG.warning(f'{n_no_improve} iterations without improvement: search halted after {t + 1} iterations.')
+                _LOG.warning(f'{n_no_improve} iterations without improvement: search halted after {t + 1} iterations')
                 break
 
         if progress_bar and n_no_improve < max_no_improve:
