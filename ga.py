@@ -458,6 +458,50 @@ class GeneticAlgorithm:
 
     """Progress data"""
 
+    def _collect_progress_data(self, population: np.ndarray, progress_details: dict, **kwargs) -> dict:
+        # optional arguments
+        best_fitness: float = kwargs.get('best_fitness', min(population[:, self.dim]))
+        best_pool: typing.Union[np.ndarray, None] = kwargs.get('best_pool')
+
+        # include best person's fitness
+        data = {
+            'best_fitness': best_fitness,
+        }
+
+        # include worst fitness
+        if progress_details in ('range', 'stats', 'all'):
+            data['worst_fitness'] = map(population[:, self.dim])
+
+        # include fitness statistics
+        if progress_details in ('stats', 'all'):
+            data['mean_fitness'] = np.mean(population[:, self.dim])
+            data['std_fitness'] = np.std(population[:, self.dim])
+
+        # include best pool's fitness
+        if progress_details in ('pool', 'pool-max', 'all'):
+            # best pool option disabled: skip
+            if best_pool is None:
+                _LOG.debug(f'No best pool included but cannot store its data: `progress_details={progress_details}`')
+                pass
+            # best pool is empty: raise error
+            if len(best_pool) == 0:
+                msg = f'No best pool is determined: Cannot store its data.'
+                raise ValueError(msg)
+            # update best pool's fitness
+            else:
+                if progress_details in ('pool', 'all'):
+                    data['pool_fitness'] = list(best_pool[:, self.dim])
+                if progress_details in ('pool-max', 'all'):
+                    data['max_pool_fitness'] = max(best_pool[:, self.dim])
+
+        # include whole population's fitness
+        if progress_details in ('full', 'all'):
+            data['pop_fitness'] = list(population[:, self.dim])
+
+        # return progress data
+        return data
+
+
     # TODO: Consider writing the data to a (temporary) file instead of keeping it in memory
     def progress_update(
             self, population: np.ndarray, progress_details: dict, progress_data: dict = None, **kwargs
@@ -506,40 +550,8 @@ class GeneticAlgorithm:
         best_fitness: float = kwargs.get('best_fitness', min(population[:, self.dim]))
         best_pool: typing.Union[np.ndarray, None] = kwargs.get('best_pool')
 
-        # include best person's fitness
-        data = {
-            'best_fitness': best_fitness
-        }
-
-        # include worst fitness
-        if progress_details in ('range', 'stats', 'all'):
-            data['worst_fitness'] = max(population[:, self.dim])
-
-        # include fitness statistics
-        if progress_details in ('stats', 'all'):
-            data['mean_fitness'] = np.mean(population[:, self.dim])
-            data['std_fitness'] = np.std(population[:, self.dim])
-
-        # include best pool's fitness
-        if progress_details in ('pool', 'pool-max', 'all'):
-            # best pool option disabled: skip
-            if best_pool is None:
-                _LOG.debug(f'No best pool included but cannot store its data: `progress_details={progress_details}`')
-                pass
-            # best pool is empty: raise error
-            elif len(best_pool) == 0:
-                msg = f'No best pool is determined: Cannot store its data.'
-                raise ValueError(msg)
-            # update progress collection
-            else:
-                if progress_details in ('pool', 'all'):
-                    data['pool_fitness'] = list(best_pool[:, self.dim])
-                if progress_details in ('pool-max', 'all'):
-                    data['max_pool_fitness'] = max(best_pool[:, self.dim])
-
-        # include whole population's fitness
-        if progress_details in ('full', 'all'):
-            data['pop_fitness'] = list(population[:, self.dim])
+        # collect progress data
+        data = self._collect_progress_data(population, progress_details, **kwargs)
 
         # initiate progress data
         if progress_data is None:
