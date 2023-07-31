@@ -123,14 +123,23 @@ class GeneticAlgorithm:
 
         :return: array of variable types
         :rtype: list
+
+        :raises AssertionError: if length of `var_types` mismatches dimensionality
+        :raises AssertionError: if unknown variable types are provided
         """
+        _var_types = ('bool', 'int', 'float')
+
         # array of variable types
         if not isinstance(var_types, str):
-            assert len(var_types) == self.dim
+            assert len(var_types) == self.dim, \
+                f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}.'
+            assert all(vt in _var_types for vt in var_types), \
+                f'Not all variable types allowed: {var_types} must be all in {_var_types}.'
             return list(var_types)
 
         # single variable type
-        assert var_types in ('bool', 'int', 'float')
+        assert var_types in _var_types, \
+            f'Unknown variable type: {var_types} not in {_var_types}.'
         if var_types == 'bool':
             var_types = 'int'
         return [var_types] * self.dim
@@ -149,15 +158,20 @@ class GeneticAlgorithm:
 
         :return: list of variable boundaries
         :rtype: list
+
+        :raises AssertionError: if length of `var_bounds` and/or `var_types` mismatches dimensionality
         """
         if not isinstance(var_types, str):
-            assert len(var_types) == len(var_bounds) == self.dim
+            assert len(var_types) == len(var_bounds) == self.dim, \
+                f'Length of `var_bounds` and/or `var_types` mismatches dimensionality: ' \
+                f'{len(var_bounds)}, {len(var_types)} =/= {self.dim}.'
             return [[0, 1] if vt == 'bool' else [min(vb), max(vb)] for vt, vb in zip(var_types, var_bounds)]
 
         if var_types == 'bool':
             return [[0, 1]] * self.dim
 
-        assert len(var_bounds) == self.dim
+        assert len(var_bounds) == self.dim, \
+            f'Length of `var_bounds` mismatches dimensionality: {len(var_bounds)} =/= {self.dim}.'
         return [[min(vb), max(vb)] for vb in var_bounds]
 
     def _set_iterations(self, iterations: typing.Union[int, None]) -> int:
@@ -580,8 +594,6 @@ class GeneticAlgorithm:
 
         :return: updated progress data
         :rtype: dict
-
-        :raises ValueError: if `best_pool` is not determined while requested to output
         """
         # collect progress data
         data = self._collect_progress_data(population, progress_details, **kwargs)
@@ -639,6 +651,8 @@ class GeneticAlgorithm:
 
         :return: output data, progress data, and pool of best fits (optional)
         :rtype: tuple
+
+        :raises AssertionError: if initiated population size and sub-population sizes do not match up
         """
         # execution settings
         # > iterations
