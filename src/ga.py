@@ -467,8 +467,11 @@ class GeneticAlgorithm:
 
         :return: selection of best people
         :rtype: numpy.array
+
+        :raises AssertionError: if best pool's `deficit` is not in (0, 1)
         """
-        assert 0 < deficit < 1
+        assert 0 < deficit < 1, \
+            f'Best pool\'s fitness must be in (0, 1), {deficit} given.'
         fitness = population[:, self.dim]
         return population[np.where(abs(fitness - best_fitness) < deficit * abs(best_fitness))].copy()
 
