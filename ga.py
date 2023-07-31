@@ -15,7 +15,9 @@ _LOG = logging.getLogger(__name__)
 
 
 class GeneticAlgorithm:
-    """A genetic algorithm that searches for the minimum of a fitness function."""
+    """A genetic algorithm that searches for the minimum of a fitness function with the option to search for a selection
+    that has a fitness within a prescribed deficit of the best performance.
+    """
     _settings: dict = {
         'population_size': 100,
         'crossover_probability': .5,
@@ -39,6 +41,7 @@ class GeneticAlgorithm:
         :param function: fitness function
         :param dimension: input dimension
         :param var_types: variable type(s), defaults to bool
+            {'bool', 'float', 'int'}
         :param var_boundaries: variable boundaries, defaults to None
         :param n_iterations: maximum number of iterations, defaults to None
         :param kwargs: genetic algorithm settings:
@@ -52,12 +55,11 @@ class GeneticAlgorithm:
                 (i.e. crossover), defaults to 0.5
             :param crossover_type: type of crossover method, defaults to 'uniform'
             :param max_no_improve: maximum number of iterations without improvement, defaults to None
-            :param function_timeout: maximum execution time of fitness function (in seconds), defaults to 10
 
         :type function: callable
         :type dimension: int
-        :type var_types: type, iterable, optional
-        :type var_boundaries: iterable, optional
+        :type var_types: str, typing.Collection, optional
+        :type var_boundaries: typing.Collection, optional
         :type n_iterations: int, optional
         :type kwargs: optional
             :type population_size: int
@@ -85,10 +87,10 @@ class GeneticAlgorithm:
         self.n_elites: int = int(self.pop_size * self._settings['elite_ratio'])
         if self.n_elites < 1 and self._settings['elite_ratio'] > 0:
             self.n_elites = 1
-        self.n_replicates = int(self.pop_size * self._settings['replicate_ratio'])
+        self.n_replicates: int = int(self.pop_size * self._settings['replicate_ratio'])
         if self.n_replicates < 1 and self._settings['replicate_ratio'] > 0:
             self.n_replicates = 1
-        self.n_crossovers = int(
+        self.n_crossovers: int = int(
             (self.pop_size - self.n_elites - self.n_replicates) * (1 - self._settings['exploration_ratio'])
         )
         if self.n_crossovers % 2:
@@ -100,29 +102,26 @@ class GeneticAlgorithm:
         self.p_mutation: float = self._settings['mutation_probability']
         self.p_crossover: float = self._settings['crossover_probability']
 
+        # set other settings
         self.n_iterations: int = self._set_iterations(n_iterations)
         self.c_type: str = self._settings['crossover_type']
-
-        if self._settings['max_no_improve'] is None:
-            self.n_no_improve: int = self.n_iterations + 1
-        else:
-            self.n_no_improve: int = int(self._settings['max_no_improve'])
+        self.n_no_improve: int = int(self._settings['max_no_improve'] or self.n_iterations + 1)
 
     """Set variables"""
 
-    def _set_variable_types(self, var_types: typing.Union[str, typing.Collection]) -> typing.Collection:
+    def _set_variable_types(self, var_types: typing.Union[str, typing.Collection]) -> list:
         """Set variable types.
 
         :param var_types: variable type(s)
         :type var_types: type, iterable
 
         :return: array of variable types
-        :rtype: numpy.array
+        :rtype: list
         """
         # array of variable types
         if not isinstance(var_types, str):
             assert len(var_types) == self.dim
-            return var_types
+            return list(var_types)
 
         # single variable type
         assert var_types in ('bool', 'int', 'float')
@@ -165,15 +164,17 @@ class GeneticAlgorithm:
         :return: maximum number of iterations
         :rtype: int
         """
+        # determine number of iterations
         if iterations is None:
             iterations = 0
-            for type_, bounds_ in zip(self.var_types, self.var_bounds):
-                dim = self.dim if type_ == int else 50
-                iterations += int((max(bounds_) - min(bounds_)) * dim * 100 / self.pop_size)
+            for vt, vb in zip(self.var_types, self.var_bounds):
+                dim = self.dim if vt == int else 50
+                iterations += int((max(vb) - min(vb)) * dim * 100 / self.pop_size)
 
             if iterations * self.pop_size > 1e7:
                 iterations = 1e7 / self.pop_size
 
+        # return number of iterations
         return int(iterations)
 
     """Genetic algorithm settings"""
@@ -192,12 +193,14 @@ class GeneticAlgorithm:
         :param settings: custom-defined settings
         :type settings: dict
         """
+        # update GA-settings
         for k, v in settings.items():
-            if k in self._settings.keys():
+            if k in self._settings:
                 self._settings[k] = v
             else:
-                _LOG.warning(f'Unknown settings key: {k}')
+                _LOG.warning(f'Unknown setting\'s key: {k} [skipped]')
 
+        # check GA-settings
         self._check_settings(self._settings)
 
     @staticmethod
@@ -206,19 +209,26 @@ class GeneticAlgorithm:
 
         :param settings: algorithm settings
         :type settings: dict
+
+        :raises AssertionError: if not all probabilities are in [0, 1]
+        :raises AssertionError: if not all ratios are in [0, 1]
+        :raises AssertionError: if `crossover_type` is unknown
         """
         probabilities = ('crossover_probability', 'mutation_probability')
-        assert all(0 <= settings[k] <= 1 for k in probabilities)
+        assert all(0 <= settings[k] <= 1 for k in probabilities), \
+            f'Not all probabilities are in [0, 1]: {settings}'
 
         ratios = ('elite_ratio', 'replicate_ratio', 'exploration_ratio', 'parent_ratio')
-        assert all(0 <= settings[k] <= 1 for k in ratios)
+        assert all(0 <= settings[k] <= 1 for k in ratios), \
+            f'Not all ratios are in [0, 1]: {settings}'
 
         crossover_types = ('index', 'slice', 'uniform')
-        assert settings['crossover_type'] in crossover_types
+        assert settings['crossover_type'] in crossover_types, \
+            f'Unknown `crossover_type`: {settings["crossover_type"]} not in {crossover_types}'
 
     """Genetic operations: Crossover"""
 
-    def apply_crossover(self, parent_1: np.ndarray, parent_2: np.ndarray) -> tuple:
+    def apply_crossover(self, parent_1: np.ndarray, parent_2: np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
         """Apply crossover operation. The following crossover methods are included:
          1. 'index'     :   switch the "genes" of the parents until a randomly selected index of the array.
          2. 'slice'     :   switch the "genes" of the parents between two randomly selected indices of the array.
@@ -232,33 +242,41 @@ class GeneticAlgorithm:
 
         :return: children
         :rtype: tuple
-        """
-        child_1 = parent_1[:self.dim].copy()
-        child_2 = parent_2[:self.dim].copy()
 
+        :raises NotImplementedError: unknown crossover-type definition
+        """
+        # initiate children: copies of parents
+        child_1: np.ndarray = parent_1[:self.dim].copy()
+        child_2: np.ndarray = parent_2[:self.dim].copy()
+
+        # apply crossover: index
         if self.c_type == 'index':
             r = np.random.randint(self.dim)
             child_1[:r] = parent_2[:r]
             child_2[:r] = parent_1[:r]
 
+        # apply crossover: slice
         elif self.c_type == 'slice':
             r1 = np.random.randint(0, self.dim)
             r2 = np.random.randint(r1, self.dim)
             child_1[r1:r2] = parent_2[r1:r2]
             child_2[r1:r2] = parent_1[r1:r2]
 
+        # apply crossover: uniform
         elif self.c_type == 'uniform':
             r = np.random.random(self.dim)
             child_1[r < .5] = parent_2[r < .5]
             child_2[r < .5] = parent_1[r < .5]
 
+        # unknown crossover type
         else:
             msg = f'Unknown crossover-type: {self.c_type} (see documentation)'
             raise NotImplementedError(msg)
 
+        # return children
         return child_1, child_2
 
-    def crossover(self, parents: np.ndarray, repeats: int) -> list:
+    def crossover(self, parents: np.ndarray, repeats: int) -> np.ndarray:
         """Crossover operations.
 
         :param parents: selection of parents
@@ -268,7 +286,7 @@ class GeneticAlgorithm:
         :type repeats: int
 
         :return: children
-        :rtype: list
+        :rtype: numpy.ndarray
         """
         children = []
         for _ in range(int(repeats)):
@@ -276,53 +294,57 @@ class GeneticAlgorithm:
             children.extend([
                 np.append(c, self.func(c)) for c in self.apply_crossover(*couple)
             ])
-        return children.copy()
+        return np.array(children)
 
     """Genetic operations: Mutation"""
 
     @staticmethod
-    def apply_mutation(bounds: typing.Collection, var_type: str) -> typing.Union[int, float]:
+    def apply_mutation(bounds: np.ndarray, var_type: str) -> typing.Union[int, float]:
         """Apply mutation operation.
 
         :param bounds: variable bounds
         :param var_type: variable type
 
-        :type bounds: iterable
+        :type bounds: numpy.ndarray
         :type var_type: type
 
         :return: variable mutation
         :rtype: int, float
+
+        :raises TypeError: if `var_type` is unknown
         """
+        # apply mutation: int
         if var_type == 'int':
             return int(np.random.randint(min(bounds), max(bounds) + 1))
+
+        # apply mutation: float
         elif var_type == 'float':
             return float(min(bounds) + np.random.random() * (max(bounds) - min(bounds)))
+
+        # unknown variable type
         else:
             msg = f'Unknown variable-type: {var_type}.'
             raise TypeError(msg)
 
-    def mutate(self, parent: np.ndarray, *bounds: typing.Collection) -> np.ndarray:
+    def mutate(self, parent: np.ndarray) -> np.ndarray:
         """Mutation operation. If no variable boundaries (i.e. `bounds`) are defined, the global variable boundaries are
         used, defined by `self.var_bounds`.
 
         :param parent: parent
-        :param bounds: variable boundaries
-
         :type parent: numpy.array
-        :type bounds: iterable
 
         :return: child
         :rtype: numpy.array
         """
-        assert len(bounds) in (0, 2)
-
-        bounds = np.transpose(bounds) if bounds else self.var_bounds
+        # initiate child
         child = parent[:self.dim].copy()
 
+        # mutate child
         for i in range(self.dim):
             if np.random.random() < self.p_mutation:
-                child[i] = self.apply_mutation(bounds[i], self.var_types[i])
+                child[i] = self.apply_mutation(self.var_bounds[i], self.var_types[i])
 
+        # return child
         return np.append(child, self.func(child))
 
     """Selection procedure"""
@@ -349,15 +371,19 @@ class GeneticAlgorithm:
         :return: probability of selection
         :rtype: numpy.array
         """
+        # minimum fitness of zero
         fitness_ = fitness.copy()
         if fitness_[0] < 0:
             fitness_ += abs(fitness_[0])
 
+        # normalise fitness
         norm_fitness = max(fitness_) - fitness_ + 1
+
+        # return probabilities based on fitness
         return np.cumsum(norm_fitness / sum(norm_fitness))
 
     @staticmethod
-    def selection(population: np.ndarray, size: int, probability: np.ndarray = None):
+    def selection(population: np.ndarray, size: int, probability: np.ndarray = None) -> np.ndarray:
         """Select a subset of the population. When no probability of selection (i.e. `probability`) is provided, the top
         of the population is selected, i.e. the people with the highest fitness. Otherwise, the selection includes a
         random factor.
@@ -366,21 +392,23 @@ class GeneticAlgorithm:
         :param size: size of selection
         :param probability: probability of selection, defaults to None
 
-        :type population: numpy.array
+        :type population: numpy.ndarray
         :type size: int
-        :type probability: float, optional
+        :type probability: numpy.ndarray, optional
 
         :return: subset of population
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         """
+        # select top-ranked population
         if probability is None:
             return population[:size].copy()
 
+        # select based on selection-probabilities
         return population[np.searchsorted(probability, np.random.random(size))].copy()
 
     """Output data"""
 
-    def output_update(self, population: np.ndarray, best_pool: typing.Collection, deficit: float) -> tuple:
+    def output_update(self, population: np.ndarray, best_pool: np.ndarray, deficit: float) -> tuple:
         """Update output data, consisting of the best person and optionally the pool of best people based on this best
         person and the pool criteria.
 
@@ -388,14 +416,17 @@ class GeneticAlgorithm:
         :param best_pool: pool of best people
         :param deficit: relative difference between person and best person to be allowed in the best pool
 
-        :type population: numpy.array
-        :type best_pool: iterable
+        :type population: numpy.ndarray
+        :type best_pool: numpy.ndarray
         :type deficit: float
 
         :return: best person, and pool of best people (optional)
         :rtype: tuple
         """
+        # best person
         person = population[0].copy()
+
+        # pool of best people
         if len(best_pool) > 0:
             assert 0 < deficit < 1
             pool = self.output_pool(best_pool, person[self.dim], deficit)
@@ -427,6 +458,7 @@ class GeneticAlgorithm:
 
     """Progress data"""
 
+    # TODO: Consider writing the data to a (temporary) file instead of keeping it in memory
     def progress_update(
             self, population: np.ndarray, progress_details: dict, progress_data: dict = None, **kwargs
     ) -> dict:
@@ -463,14 +495,20 @@ class GeneticAlgorithm:
         :type progress_data: dict, optional
         :type kwargs: optional
             best_fitness: float
-            best_pool: numpy.array
+            best_pool: numpy.ndarray
 
         :return: updated progress data
         :rtype: dict
+
+        :raises ValueError: if `best_pool` is not determined while requested to output
         """
-        # include best person and fitness
+        # optional arguments
+        best_fitness: float = kwargs.get('best_fitness', min(population[:, self.dim]))
+        best_pool: typing.Union[np.ndarray, None] = kwargs.get('best_pool')
+
+        # include best person's fitness
         data = {
-            'best_fitness': kwargs.get('best_fitness', min(population[:, self.dim]))
+            'best_fitness': best_fitness
         }
 
         # include worst fitness
@@ -483,25 +521,21 @@ class GeneticAlgorithm:
             data['std_fitness'] = np.std(population[:, self.dim])
 
         # include best pool's fitness
-        if progress_details in ('pool', 'all'):
-            best_pool = kwargs.get('best_pool')
+        if progress_details in ('pool', 'pool-max', 'all'):
+            # best pool option disabled: skip
             if best_pool is None:
-                msg = f'No best pool is provided: Cannot store its data.'
-                raise ValueError(msg)
+                _LOG.debug(f'No best pool included but cannot store its data: `progress_details={progress_details}`')
+                pass
+            # best pool is empty: raise error
             elif len(best_pool) == 0:
                 msg = f'No best pool is determined: Cannot store its data.'
                 raise ValueError(msg)
-            data['pool_fitness'] = list(best_pool[:, self.dim])
-
-        if progress_details in ('pool-max', 'all'):
-            best_pool = kwargs.get('best_pool')
-            if best_pool is None:
-                msg = f'No best pool is provided: Cannot use its data.'
-                raise ValueError(msg)
-            elif len(best_pool) == 0:
-                msg = f'No best pool is determined: Cannot use its data.'
-                raise ValueError(msg)
-            data['max_pool_fitness'] = max(best_pool[:, self.dim])
+            # update progress collection
+            else:
+                if progress_details in ('pool', 'all'):
+                    data['pool_fitness'] = list(best_pool[:, self.dim])
+                if progress_details in ('pool-max', 'all'):
+                    data['max_pool_fitness'] = max(best_pool[:, self.dim])
 
         # include whole population's fitness
         if progress_details in ('full', 'all'):
@@ -572,7 +606,7 @@ class GeneticAlgorithm:
         # > progress
         progress_bar: bool = kwargs.get('progress_bar', False)
         progress_bar_length: int = kwargs.get('progress_bar_length', 50)
-        progress_export: bool = kwargs.get('progress_export', False)
+        progress_export: typing.Union[bool, str] = kwargs.get('progress_export', False)
         progress_details: dict = kwargs.get('progress_details')
 
         # initial population
@@ -659,8 +693,8 @@ class GeneticAlgorithm:
 
         # export progress details
         if progress_export:
-            export = filing.Export(None if isinstance(progress_export, bool) else progress_export)
-            export.to_csv(data=progress_data, file_name='ga_progress', index=False)
+            wd = progress_export if isinstance(progress_export, str) else None
+            _export2csv(progress_data, wd=wd)
 
         output_dict = {
             'variable': best_person[:self.dim],
