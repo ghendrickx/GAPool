@@ -757,13 +757,18 @@ def _progress_bar(step: int, n_iterations: int, **kwargs) -> None:
     sys.stdout.flush()
 
 
-def _export2csv(data: dict, file_name: str = 'ga_process.csv', wd: str = None) -> None:
-    """Export `dict`-data
+def _export2csv(data: dict, file_name: str = 'ga_progress.csv', wd: str = None) -> None:
+    """Export `dict`-data as `*.csv`-file.
 
-    :param data:
-    :param file_name:
-    :param wd:
-    :return:
+    :param data: data
+    :param file_name: file name, defaults to 'ga_progress.csv'
+    :param wd: working directory, defaults to None
+
+    :type data: dict
+    :type file_name: str, optional
+    :type wd: str, optional
+
+    :raises AssertionError: if data-values are not all of same length
     """
     # optional arguments: output file
     wd = wd or os.getcwd()
@@ -786,3 +791,5 @@ def _export2csv(data: dict, file_name: str = 'ga_process.csv', wd: str = None) -
         f.write('\n'.join(
             ','.join(map(str, row)) for row in rows
         ))
+
+    _LOG.info(f'Data exported to {file}')
