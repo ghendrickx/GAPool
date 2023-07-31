@@ -477,7 +477,27 @@ class GeneticAlgorithm:
 
     """Progress data"""
 
-    def _collect_progress_data(self, population: np.ndarray, progress_details: dict, **kwargs) -> dict:
+    def _collect_progress_data(self, population: np.ndarray, progress_details: str, **kwargs) -> dict:
+        """Collect data on evolutionary progress. See documentation of `.progress_update()` on the possible keywords of
+        `progress_details`, and what data is collected based on every keyword.
+
+        :param population: population
+        :param progress_details: progress details to include
+        :param kwargs: data to accelerate the execution, or required to store the requested data
+            best_fitness: fitness of best person, defaults to `min(population[:, self.dim])`
+            best_pool: pool with best performing people, defaults to None
+
+        :type population: numpy.ndarray
+        :type progress_details: str
+        :type kwargs: optional
+            best_fitness: float
+            best_pool: numpy.ndarray
+
+        :return: collected progress data
+        :rtype: dict
+
+        :raises ValueError: if `best_pool` has a length of zero.
+        """
         # optional arguments
         best_fitness: float = kwargs.get('best_fitness', min(population[:, self.dim]))
         best_pool: typing.Union[np.ndarray, None] = kwargs.get('best_pool')
