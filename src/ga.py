@@ -516,7 +516,7 @@ class GeneticAlgorithm:
         return data
 
     def progress_update(
-            self, population: np.ndarray, progress_details: dict, progress_data: dict = None, **kwargs
+            self, population: np.ndarray, progress_details: str, progress_data: dict = None, **kwargs
     ) -> dict:
         """Initiate and update progress data. The data included is defined by `progress_details`:
          -  None        :   store the best fitness [default]
@@ -547,7 +547,7 @@ class GeneticAlgorithm:
             best_pool: pool with best performing people, defaults to raising error when missing
 
         :type population: numpy.array
-        :type progress_details: dict
+        :type progress_details: str
         :type progress_data: dict, optional
         :type kwargs: optional
             best_fitness: float
@@ -626,7 +626,7 @@ class GeneticAlgorithm:
         progress_bar: bool = kwargs.get('progress_bar', False)
         progress_bar_length: int = kwargs.get('progress_bar_length', 50)
         progress_export: typing.Union[bool, str] = kwargs.get('progress_export', False)
-        progress_details: dict = kwargs.get('progress_details')
+        progress_details: str = kwargs.get('progress_details')
 
         # initial population
         population = np.zeros((self.pop_size, self.dim + 1))
