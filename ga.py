@@ -32,17 +32,17 @@ class GeneticAlgorithm:
 
     def __init__(
             self, function: callable, dimension: int,
-            var_types: typing.Union[str, typing.Collection] = 'bool',
-            var_boundaries: typing.Collection = None,
+            var_types: typing.Union[str, typing.Collection],
+            var_boundaries: typing.Collection,
             n_iterations: int = None,
             **kwargs
     ) -> None:
         """
         :param function: fitness function
         :param dimension: input dimension
-        :param var_types: variable type(s), defaults to bool
+        :param var_types: variable type(s)
             {'bool', 'float', 'int'}
-        :param var_boundaries: variable boundaries, defaults to None
+        :param var_boundaries: variable boundaries
         :param n_iterations: maximum number of iterations, defaults to None
         :param kwargs: genetic algorithm settings:
             :param population_size: population size, defaults to 100
@@ -58,8 +58,8 @@ class GeneticAlgorithm:
 
         :type function: callable
         :type dimension: int
-        :type var_types: str, typing.Collection, optional
-        :type var_boundaries: typing.Collection, optional
+        :type var_types: str, typing.Collection
+        :type var_boundaries: typing.Collection
         :type n_iterations: int, optional
         :type kwargs: optional
             :type population_size: int
@@ -72,8 +72,14 @@ class GeneticAlgorithm:
             :type crossover_type: str
             :type max_no_improve: int
             :type function_timeout: float
+
+        :raises AssertionError: if `function` is not callable
         """
-        assert callable(function)
+        # function must be callable
+        assert callable(function), \
+            f'Fitness\' function must be callable.'
+
+        # initiate object
         self.func = function
         self.dim = dimension
 
