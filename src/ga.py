@@ -73,18 +73,19 @@ class GeneticAlgorithm:
             :type max_no_improve: int
             :type function_timeout: float
 
-        :raises AssertionError: if `function` is not callable
+        :raises TypeError: if `function` is not callable
         """
         # function must be callable
-        assert callable(function), \
-            f'Fitness\' function must be callable.'
+        if not callable(function):
+            msg = f'Fitness\' function must be callable: `function` of type {type(function)}'
+            raise TypeError(msg)
 
         # initiate object
         self.func = function
         self.dim = dimension
 
         self.var_types = self._set_variable_types(var_types)
-        self.var_bounds = self._set_variable_bounds(var_boundaries, var_types)
+        self.var_bounds = self._set_variable_bounds(var_boundaries, self.var_types)
 
         self._set_settings(kwargs)
 
@@ -248,21 +249,24 @@ class GeneticAlgorithm:
         :param settings: algorithm settings
         :type settings: dict
 
-        :raises AssertionError: if not all probabilities are in [0, 1]
-        :raises AssertionError: if not all ratios are in [0, 1]
-        :raises AssertionError: if `crossover_type` is unknown
+        :raises ValueError: if not all probabilities are in [0, 1]
+        :raises ValueError: if not all ratios are in [0, 1]
+        :raises ValueError: if `crossover_type` is unknown
         """
         probabilities = ('crossover_probability', 'mutation_probability')
-        assert all(0 <= settings[k] <= 1 for k in probabilities), \
-            f'Not all probabilities are in [0, 1]: {settings}'
+        if not all(0 <= settings[k] <= 1 for k in probabilities):
+            msg = f'Not all probabilities are in [0, 1]: {settings}'
+            raise ValueError(msg)
 
         ratios = ('elite_ratio', 'replicate_ratio', 'exploration_ratio', 'parent_ratio')
-        assert all(0 <= settings[k] <= 1 for k in ratios), \
-            f'Not all ratios are in [0, 1]: {settings}'
+        if not all(0 <= settings[k] <= 1 for k in ratios):
+            msg = f'Not all ratios are in [0, 1]: {settings}'
+            raise ValueError(msg)
 
         crossover_types = ('index', 'slice', 'uniform')
-        assert settings['crossover_type'] in crossover_types, \
-            f'Unknown `crossover_type`: {settings["crossover_type"]} not in {crossover_types}'
+        if settings['crossover_type'] not in crossover_types:
+            msg = f'Unknown `crossover_type`: {settings["crossover_type"]} not in {crossover_types}'
+            raise ValueError(msg)
 
     """Genetic operations: Crossover"""
 
@@ -281,7 +285,7 @@ class GeneticAlgorithm:
         :return: children
         :rtype: tuple
 
-        :raises NotImplementedError: unknown crossover-type definition
+        :raises ValueError: unknown crossover-type definition
         """
         # initiate children: copies of parents
         child_1: np.ndarray = parent_1[:self.dim].copy()
@@ -309,7 +313,7 @@ class GeneticAlgorithm:
         # unknown crossover type
         else:
             msg = f'Unknown crossover-type: {self.c_type} (see documentation)'
-            raise NotImplementedError(msg)
+            raise ValueError(msg)
 
         # return children
         return child_1, child_2
@@ -349,7 +353,7 @@ class GeneticAlgorithm:
         :return: variable mutation
         :rtype: int, float
 
-        :raises TypeError: if `var_type` is unknown
+        :raises ValueError: if `var_type` is unknown
         """
         # apply mutation: int
         if var_type == 'int':
@@ -362,7 +366,7 @@ class GeneticAlgorithm:
         # unknown variable type
         else:
             msg = f'Unknown variable-type: {var_type}.'
-            raise TypeError(msg)
+            raise ValueError(msg)
 
     def mutate(self, parent: np.ndarray) -> np.ndarray:
         """Mutation operation. If no variable boundaries (i.e. `bounds`) are defined, the global variable boundaries are
@@ -670,6 +674,7 @@ class GeneticAlgorithm:
         :return: output data, progress data, and pool of best fits (optional)
         :rtype: tuple
 
+        :raises ValueError: if `output_pool_deficit` is not in (0, 1)
         :raises AssertionError: if initiated population size and sub-population sizes do not match up
         """
         # execution settings
@@ -679,6 +684,9 @@ class GeneticAlgorithm:
         # > output
         output_pool: bool = kwargs.get('output_pool', False)
         output_pool_deficit: float = kwargs.get('output_pool_deficit', .1)
+        if not (0 < output_pool_deficit < 1):
+            msg = f'Best pool\'s `deficit` must be in (0, 1), {output_pool_deficit} given.'
+            raise ValueError(msg)
         # > progress
         progress_bar: bool = kwargs.get('progress_bar', False)
         progress_bar_length: int = kwargs.get('progress_bar_length', 50)
