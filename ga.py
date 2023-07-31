@@ -482,7 +482,7 @@ class GeneticAlgorithm:
 
         # include worst fitness
         if progress_details in ('range', 'stats', 'all'):
-            data['worst_fitness'] = map(population[:, self.dim])
+            data['worst_fitness'] = max(population[:, self.dim])
 
         # include fitness statistics
         if progress_details in ('stats', 'all'):
