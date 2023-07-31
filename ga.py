@@ -427,15 +427,21 @@ class GeneticAlgorithm:
         person = population[0].copy()
 
         # pool of best people
-        if len(best_pool) > 0:
-            assert 0 < deficit < 1
+        if best_pool is None:
+            # best pool is disabled
+            pool = None
+        else:
+            # update best pool's people
+            assert 0 < deficit < 1, \
+                f'Best pool\'s `deficit` must be in (0, 1), {deficit} given.'
+            # remove unfit persons
             pool = self.output_pool(best_pool, person[self.dim], deficit)
+            # add fit persons
             pool = np.append(
                 pool, self.output_pool(population, person[self.dim], deficit)
             ).reshape((-1, self.dim + 1))
-        else:
-            pool = best_pool.copy()
 
+        # return best person and pool
         return person, pool
 
     def output_pool(self, population: np.ndarray, best_fitness: float, deficit: float) -> np.ndarray:
@@ -566,7 +572,7 @@ class GeneticAlgorithm:
 
     """Execution"""
 
-    def exec(self, **kwargs) -> tuple:
+    def exec(self, **kwargs) -> typing.Tuple[dict, dict, typing.Union[None, np.ndarray]]:
         """Execute genetic algorithm.
 
         :param kwargs: execution settings
@@ -629,7 +635,7 @@ class GeneticAlgorithm:
 
         # initiate best performance variables
         best_person = min(population, key=lambda p: p[self.dim])
-        best_pool = self.output_pool(population, best_person[self.dim], output_pool_deficit) if output_pool else []
+        best_pool = self.output_pool(population, best_person[self.dim], output_pool_deficit) if output_pool else None
 
         # initiate progress variables
         n_no_improve = 0
