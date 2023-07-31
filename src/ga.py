@@ -167,7 +167,7 @@ class GeneticAlgorithm:
             return [set_single_var_type(vt) for vt in var_types]
 
     def _set_variable_bounds(
-            self, var_bounds: typing.Collection, var_types: typing.Union[str, typing.Collection]
+            self, var_bounds: typing.Collection, var_types: typing.Collection[str]
     ) -> list:
         """Set variable boundaries. In case the variable is a boolean, no variable boundaries are required as these will
         default to [0, 1].
@@ -181,20 +181,16 @@ class GeneticAlgorithm:
         :return: list of variable boundaries
         :rtype: list
 
-        :raises AssertionError: if length of `var_bounds` and/or `var_types` mismatches dimensionality
+        :raises ValueError: if length of `var_bounds` and/or `var_types` mismatches dimensionality
         """
-        if not isinstance(var_types, str):
-            assert len(var_types) == len(var_bounds) == self.dim, \
-                f'Length of `var_bounds` and/or `var_types` mismatches dimensionality: ' \
-                f'{len(var_bounds)}, {len(var_types)} =/= {self.dim}.'
-            return [[0, 1] if vt == 'bool' else [min(vb), max(vb)] for vt, vb in zip(var_types, var_bounds)]
+        # assert correct dimensionality
+        var_bounds = np.reshape(var_bounds, (-1, 2))
+        if not len(var_bounds) == self.dim:
+            msg = f'Length of `var_bounds` mismatches dimensionality: {len(var_bounds)} =/= {self.dim}'
+            raise ValueError(msg)
 
-        if var_types == 'bool':
-            return [[0, 1]] * self.dim
-
-        assert len(var_bounds) == self.dim, \
-            f'Length of `var_bounds` mismatches dimensionality: {len(var_bounds)} =/= {self.dim}.'
-        return [[min(vb), max(vb)] for vb in var_bounds]
+        # return variable boundaries
+        return [[0, 1] if vt == 'bool' else [min(vb), max(vb)] for vb, vt in zip(var_bounds, var_types)]
 
     def _set_iterations(self, iterations: typing.Union[int, None]) -> int:
         """Set maximum number of iterations. If no value is provided (i.e. `None`), the maximum number of iterations is
