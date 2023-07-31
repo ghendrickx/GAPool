@@ -292,7 +292,7 @@ class GeneticAlgorithm:
         for _ in range(int(repeats)):
             couple = parents[np.random.randint(len(parents), size=2), :self.dim].copy()
             children.extend([
-                np.append(c, self.func(c)) for c in self.apply_crossover(*couple)
+                np.append(c, self.func(*c)) for c in self.apply_crossover(*couple)
             ])
         return np.array(children)
 
@@ -345,7 +345,7 @@ class GeneticAlgorithm:
                 child[i] = self.apply_mutation(self.var_bounds[i], self.var_types[i])
 
         # return child
-        return np.append(child, self.func(child))
+        return np.append(child, self.func(*child))
 
     """Selection procedure"""
 
@@ -612,8 +612,8 @@ class GeneticAlgorithm:
         # initial population
         population = np.zeros((self.pop_size, self.dim + 1))
         for pi in range(self.pop_size):
-            person = np.array([self.apply_mutation(vb, vt) for vb, vt in zip(self.var_bounds, self.var_types)])
-            population[pi] = person + [self.func(person)]
+            person = [self.apply_mutation(vb, vt) for vb, vt in zip(self.var_bounds, self.var_types)]
+            population[pi] = person + [self.func(*person)]
 
         # initiate best performance variables
         best_person = min(population, key=lambda p: p[self.dim])
