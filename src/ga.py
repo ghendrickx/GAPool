@@ -161,30 +161,66 @@ class GeneticAlgorithm:
             # return list of variable types
             return [set_single_var_type(vt) for vt in var_types]
 
-    def _set_variable_bounds(
-            self, var_bounds: typing.Collection, var_types: typing.Collection[str]
-    ) -> list:
-        """Set variable boundaries. In case the variable is a boolean, no variable boundaries are required as these will
-        default to [0, 1].
+    def _set_variable_bounds(self, var_bounds: typing.Collection, var_types: typing.Collection[str]) -> list:
+        """Set variable boundaries. In case the variable is a boolean, the variable boundaries are overwritten to be
+        integers: [0, 1].
 
         :param var_bounds: variable boundaries
         :param var_types: variable type(s)
 
-        :type var_bounds: iterable
-        :type var_types: type, iterable
+        :type var_bounds: typing.Collection
+        :type var_types: typing.Collection[str]
 
-        :return: list of variable boundaries
+        :return: variable boundaries
         :rtype: list
 
-        :raises ValueError: if length of `var_bounds` and/or `var_types` mismatches dimensionality
+        :raises ValueError: if length of `var_bounds` mismatches dimensionality
+        :raises NotImplementedError: if any invalid variable types are provided
         """
+
+        def set_single_var_bounds(var_bound: typing.Collection, var_type: str) -> list:
+            """Check, modify, and return per variable boundaries couple.
+
+            :param var_bound: variable boundaries
+            :param var_type: variable type
+
+            :type var_bound: typing.Collection
+            :type var_type: str
+
+            :return: variable boundaries
+            :rtype: list
+
+            :raises NotImplementedError: if any invalid variable types are provided
+            """
+            # variable boundaries: boolean
+            if var_type == 'bool':
+                _LOG.debug(f'Boolean variable type overwrites variable boundaries: {var_bound} -> {[0, 1]}')
+                return [0, 1]
+
+            # variable boundaries: integer
+            elif var_type == 'int':
+                if not all(isinstance(v, int) for v in var_bound):
+                    _LOG.warning(
+                        f'Non-integer variable boundaries provided for integer-type variable: '
+                        f'{var_bound} -> {[int(min(var_bound)), int(max(var_bound))]}'
+                    )
+                return [int(min(var_bound)), int(max(var_bound))]
+
+
+            # variable boundaries: float
+            elif var_type == 'float':
+                return [float(min(var_bound)), float(max(var_bound))]
+
+            # unknown variable type
+            raise NotImplementedError(f'Unknown variable type: {var_type}')
+
         # assert correct dimensionality
         var_bounds = np.reshape(var_bounds, (-1, 2))
         if not len(var_bounds) == self.dim:
             raise ValueError(f'Length of `var_bounds` mismatches dimensionality: {len(var_bounds)} =/= {self.dim}')
 
         # return variable boundaries
-        return [[0, 1] if vt == 'bool' else [min(vb), max(vb)] for vb, vt in zip(var_bounds, var_types)]
+        return [set_single_var_bounds(vb, vt) for vb, vt in zip(var_bounds, var_types)]
 
     def _set_iterations(self, iterations: typing.Union[int, None]) -> int:
         """Set maximum number of iterations. If no value is provided (i.e. `None`), the maximum number of iterations is
@@ -348,7 +384,7 @@ class GeneticAlgorithm:
         :raises ValueError: if `var_type` is unknown
         """
         # apply mutation: int
-        if var_type == 'int':
+        if var_type in ('bool', 'int'):
             return int(np.random.randint(min(bounds), max(bounds) + 1))
 
         # apply mutation: float
