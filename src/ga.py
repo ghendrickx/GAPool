@@ -399,6 +399,25 @@ class GeneticAlgorithm:
 
         # return person
         return np.append(person, fitness)
+
+    def initiate_population(self) -> np.ndarray:
+        """Initiate population.
+
+        :return: population
+        :rtype: numpy.ndarray
+        """
+        # create population
+        population = np.array([
+            self.initiate_person() for _ in range(self.pop_size)
+        ])
+
+        # verify population's shape
+        assert population.shape == (self.pop_size, self.dim + 1), \
+            f'Population should be of shape {(self.pop_size, self.dim + 1)}; {population.shape} given'
+
+        # return population
+        return population
+
     """Selection procedure"""
 
     def sort_population(self, population: np.ndarray) -> np.ndarray:
@@ -706,10 +725,7 @@ class GeneticAlgorithm:
         progress_details: str = kwargs.get('progress_details')
 
         # initial population
-        population = np.zeros((self.pop_size, self.dim + 1))
-        for pi in range(self.pop_size):
-            person = [self.apply_mutation(vb, vt) for vb, vt in zip(self.var_bounds, self.var_types)]
-            population[pi] = person + [self.func(*person)]
+        population = self.initiate_population()
 
         # initiate best performance variables
         best_person = min(population, key=lambda p: p[self.dim])
