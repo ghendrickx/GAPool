@@ -87,13 +87,13 @@ output_with_pool = model.exec(output_pool=True)
 The exact output varies per execution due to the random nature of the genetic algorithm. Nevertheless, the results in
 `output_without_pool` will contain the following three items:
 ```
-{'variable': array([v01, v02, v03]), 'function': f0}
+{'person': array([v01, v02, v03]), 'fitness': f0}
 {'best_fitness': [..., ..., f0]}
 None
 ```
 The results in the `output_with_pool` will look the same, except the addition of the pool with the _fittest people_:
 ```
-{'variable': array([v01, v02, v03]), 'function': f0}
+{'person': array([v01, v02, v03]), 'fitness': f0}
 {'best_fitness': [..., ..., f0]}
 [[v11, v12, v13, f1]
  [v21, v22, v23, f2]

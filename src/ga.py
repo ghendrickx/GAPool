@@ -852,8 +852,8 @@ class GeneticAlgorithm:
             _export2csv(progress_data, wd=wd)
 
         output_dict = {
-            'variable': best_person[:self.dim],
-            'function': best_person[self.dim],
+            'person': best_person[:self.dim],
+            'fitness': best_person[self.dim],
         }
 
         # return output data, progress data, and pool of best fits
