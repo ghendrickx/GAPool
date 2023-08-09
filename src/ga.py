@@ -115,13 +115,13 @@ class GeneticAlgorithm:
 
     """Set variables"""
 
-    def _set_variable_types(self, var_types: typing.Union[str, typing.Collection]) -> list:
+    def _set_variable_types(self, var_types: typing.Union[str, typing.Collection[str]]) -> list:
         """Set variable types.
 
         :param var_types: variable type(s)
-        :type var_types: type, iterable
+        :type var_types: str, typing.Collection[str]
 
-        :return: array of variable types
+        :return: variable types
         :rtype: list
 
         :raises ValueError: if length of `var_types` mismatches dimensionality
@@ -144,10 +144,6 @@ class GeneticAlgorithm:
             if var_type not in _var_types:
                 raise ValueError(f'Invalid variable type: {var_types} not in {_var_types}')
 
-            # convert 'bool' to 'int'
-            if var_type == 'bool':
-                var_type = 'int'
-
             # return valid variable type
             return var_type
 
@@ -156,11 +152,12 @@ class GeneticAlgorithm:
             # return list of variable types
             return [set_single_var_type(var_types)] * self.dim
 
-        # list of variable types
+        # assert correct dimensionality
         if not len(var_types) == self.dim:
-            # assert correct dimensionality
-            if not len(var_types) == self.dim:
-                raise ValueError(f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}')
+            raise ValueError(f'Length of `var_types` mismatches dimensionality: {len(var_types)} =/= {self.dim}')
+
+        # list of variable types
+        if len(var_types) == self.dim:
             # return list of variable types
             return [set_single_var_type(vt) for vt in var_types]
 
