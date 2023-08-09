@@ -383,6 +383,22 @@ class GeneticAlgorithm:
         # return child
         return np.append(child, self.func(*child))
 
+    """Population initiation"""
+
+    def initiate_person(self) -> np.ndarray:
+        """Initiate a single person of the population.
+
+        :return: person
+        :rtype: numpy.ndarray
+        """
+        # "create" person by mutation
+        person = [self.apply_mutation(vb, vt) for vb, vt in zip(self.var_bounds, self.var_types)]
+
+        # person's fitness
+        fitness = self.func(*person)
+
+        # return person
+        return np.append(person, fitness)
     """Selection procedure"""
 
     def sort_population(self, population: np.ndarray) -> np.ndarray:
