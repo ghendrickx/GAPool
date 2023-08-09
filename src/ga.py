@@ -740,12 +740,14 @@ class GeneticAlgorithm:
 
         # evolution
         for t in range(n_iterations):
+            # progress bar: running
             if progress_bar:
                 _progress_bar(t, n_iterations, bar_length=progress_bar_length)
 
             # sort population
             population = self.sort_population(population)
 
+            # update best person (and pool)
             if population[0, self.dim] < best_person[self.dim]:
                 best_person, best_pool = self.output_update(population, best_pool, output_pool_deficit)
                 n_no_improve = 0
@@ -783,19 +785,25 @@ class GeneticAlgorithm:
                 elites, replicates, crossovers, mutations
             ]).reshape((self.pop_size, self.dim + 1))
 
-            # no improvement
+            # no improvement: terminate evolution
             if n_no_improve >= max_no_improve:
+                # progress bar: completed
                 if progress_bar:
                     _progress_bar(n_iterations, n_iterations, bar_length=progress_bar_length)
-                    time.sleep(.1)
+                    time.sleep(.01)
+
+                # terminate evolution
                 _LOG.warning(f'{n_no_improve} iterations without improvement: search halted after {t + 1} iterations')
                 break
 
+        # progress bar: completed
         if progress_bar and n_no_improve < max_no_improve:
             _progress_bar(n_iterations, n_iterations, bar_length=progress_bar_length)
 
         # sort population
         population = self.sort_population(population)
+
+        # update best person (and pool)
         if population[0, self.dim] < best_person[self.dim]:
             best_person, best_pool = self.output_update(population, best_pool, output_pool_deficit)
 
