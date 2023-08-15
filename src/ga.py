@@ -281,17 +281,17 @@ class GeneticAlgorithm:
         :raises ValueError: if `crossover_type` is unknown
         """
         # validity of probabilities
-        probabilities = ('crossover_probability', 'mutation_probability')
+        probabilities = 'crossover_probability', 'mutation_probability'
         if not all(0 <= settings[k] <= 1 for k in probabilities):
             raise ValueError(f'Not all probabilities are in [0, 1]: {settings}')
 
         # validity of ratios
-        ratios = ('elite_ratio', 'replicate_ratio', 'exploration_ratio', 'parent_ratio')
+        ratios = 'elite_ratio', 'replicate_ratio', 'exploration_ratio', 'parent_ratio'
         if not all(0 <= settings[k] <= 1 for k in ratios):
             raise ValueError(f'Not all ratios are in [0, 1]: {settings}')
 
         # validity of crossover-types
-        crossover_types = ('index', 'slice', 'uniform')
+        crossover_types = 'index', 'slice', 'uniform'
         if settings['crossover_type'] not in crossover_types:
             raise ValueError(f'Unknown `crossover_type`: {settings["crossover_type"]} not in {crossover_types}')
 
