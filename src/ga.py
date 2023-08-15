@@ -19,15 +19,15 @@ class GeneticAlgorithm:
     that has a fitness within a prescribed deficit of the best performance.
     """
     _settings: dict = {
-        'population_size': 100,
         'crossover_probability': .5,
-        'mutation_probability': .1,
-        'elite_ratio': .1,
-        'replicate_ratio': .1,
-        'parent_ratio': .4,
-        'exploration_ratio': .5,
         'crossover_type': 'uniform',
+        'elite_ratio': .1,
+        'exploration_ratio': .5,
         'max_no_improve': None,
+        'mutation_probability': .1,
+        'parent_ratio': .4,
+        'population_size': 100,
+        'replicate_ratio': .1,
     }
 
     def __init__(
@@ -45,16 +45,16 @@ class GeneticAlgorithm:
         :param var_boundaries: variable boundaries
         :param n_iterations: maximum number of iterations, defaults to None
         :param kwargs: genetic algorithm settings:
-            :param population_size: population size, defaults to 100
-            :param crossover_probability: probability of crossover, defaults to 0.5
-            :param mutation_probability: probability of mutation, defaults to 0.1
-            :param elite_ratio: ratio of population subjected to elitism, defaults to 0.1
-            :param replicate_ratio: ratio of population subjected to replication, defaults to 0.1
-            :param parent_ratio: ratio of population used as parents for the new generation, defaults to 0.4
-            :param exploration_ratio: ratio of children focused on exploration (i.e. mutation) over exploitation
+            crossover_probability: probability of crossover, defaults to 0.5
+            crossover_type: type of crossover method, defaults to 'uniform'
+            elite_ratio: ratio of population subjected to elitism, defaults to 0.1
+            exploration_ratio: ratio of children focused on exploration (i.e. mutation) over exploitation
                 (i.e. crossover), defaults to 0.5
-            :param crossover_type: type of crossover method, defaults to 'uniform'
-            :param max_no_improve: maximum number of iterations without improvement, defaults to None
+            max_no_improve: maximum number of iterations without improvement, defaults to None
+            mutation_probability: probability of mutation, defaults to 0.1
+            parent_ratio: ratio of population used as parents for the new generation, defaults to 0.4
+            population_size: population size, defaults to 100
+            replicate_ratio: ratio of population subjected to replication, defaults to 0.1
 
         :type function: callable
         :type dimension: int
@@ -62,16 +62,15 @@ class GeneticAlgorithm:
         :type var_boundaries: typing.Collection
         :type n_iterations: int, optional
         :type kwargs: optional
-            :type population_size: int
-            :type crossover_probability: float
-            :type mutation_probability: float
-            :type elite_ratio: float
-            :type replicate_ratio: float
-            :type parent_ratio: float
-            :type exploration_ratio: float
-            :type crossover_type: str
-            :type max_no_improve: int
-            :type function_timeout: float
+            crossover_probability: float
+            crossover_type: str
+            elite_ratio: float
+            exploration_ratio: float
+            max_no_improve: int
+            mutation_probability: float
+            parent_ratio: float
+            population_size: int
+            replicate_ratio: float
 
         :raises TypeError: if `function` is not callable
         """
@@ -205,7 +204,6 @@ class GeneticAlgorithm:
                         f'{var_bound} -> {[int(min(var_bound)), int(max(var_bound))]}'
                     )
                 return [int(min(var_bound)), int(max(var_bound))]
-
 
             # variable boundaries: float
             elif var_type == 'float':
