@@ -25,7 +25,6 @@ class GeneticAlgorithm:
         'exploration_ratio': .5,
         'max_no_improve': None,
         'mutation_probability': .1,
-        'parent_ratio': .4,
         'population_size': 100,
         'replicate_ratio': .1,
     }
@@ -52,7 +51,6 @@ class GeneticAlgorithm:
                 (i.e. crossover), defaults to 0.5
             max_no_improve: maximum number of iterations without improvement, defaults to None
             mutation_probability: probability of mutation, defaults to 0.1
-            parent_ratio: ratio of population used as parents for the new generation, defaults to 0.4
             population_size: population size, defaults to 100
             replicate_ratio: ratio of population subjected to replication, defaults to 0.1
 
@@ -68,7 +66,6 @@ class GeneticAlgorithm:
             exploration_ratio: float
             max_no_improve: int
             mutation_probability: float
-            parent_ratio: float
             population_size: int
             replicate_ratio: float
 
@@ -101,7 +98,6 @@ class GeneticAlgorithm:
         if self.n_crossovers % 2:
             self.n_crossovers += 1
         self.n_mutations: int = int(self.pop_size - self.n_elites - self.n_replicates - self.n_crossovers)
-        self.n_parents: int = int(self.pop_size * self._settings['parent_ratio'])
 
         # set genetic operations probabilities
         self.p_mutation: float = self._settings['mutation_probability']
@@ -286,7 +282,7 @@ class GeneticAlgorithm:
             raise ValueError(f'Not all probabilities are in [0, 1]: {settings}')
 
         # validity of ratios
-        ratios = 'elite_ratio', 'replicate_ratio', 'exploration_ratio', 'parent_ratio'
+        ratios = 'elite_ratio', 'replicate_ratio', 'exploration_ratio'
         if not all(0 <= settings[k] <= 1 for k in ratios):
             raise ValueError(f'Not all ratios are in [0, 1]: {settings}')
 
@@ -344,25 +340,35 @@ class GeneticAlgorithm:
         # return children
         return child_1, child_2
 
-    def crossover(self, parents: np.ndarray, repeats: int) -> np.ndarray:
+    def crossover(self, parents: np.ndarray, copy: bool = False) -> list:
         """Crossover operations.
 
         :param parents: selection of parents
-        :param repeats: number of repetitions, output is twice the size of this value
+        :param copy: copy parents-array, defaults to False
 
         :type parents: numpy.array
-        :type repeats: int
+        :type copy: bool, optional
 
         :return: children
-        :rtype: numpy.ndarray
+        :rtype: list
         """
+        # initiate working children
         children = []
-        for _ in range(int(repeats)):
-            couple = parents[np.random.randint(len(parents), size=2), :self.dim].copy()
+
+        # copy parents
+        if copy:
+            parents = parents.copy()
+
+        # apply crossover
+        while len(parents) > 0:
+            couple = parents[:2, :self.dim].copy()
             children.extend([
                 np.append(c, self.func(*c)) for c in self.apply_crossover(*couple)
             ])
-        return np.array(children)
+            parents = parents[2:]
+
+        # return children
+        return children
 
     """Genetic operations: Mutation"""
 
@@ -801,8 +807,8 @@ class GeneticAlgorithm:
             replicates = self.selection(population, self.n_replicates, probability=probability)
 
             # new generation: crossover
-            parents = self.selection(population, self.n_parents, probability=probability)
-            crossovers = self.crossover(parents, int(self.n_crossovers / 2))
+            parents = self.selection(population, self.n_crossovers, probability=probability)
+            crossovers = self.crossover(parents)
 
             # new generation: mutation
             parents = self.selection(population, self.n_mutations, probability=probability)
