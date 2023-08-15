@@ -274,6 +274,7 @@ class GeneticAlgorithm:
 
         :raises ValueError: if not all probabilities are in [0, 1]
         :raises ValueError: if not all ratios are in [0, 1]
+        :raises ValueError: if the sum of all ratios is greater than 1
         :raises ValueError: if `crossover_type` is unknown
         """
         # validity of probabilities
@@ -285,6 +286,8 @@ class GeneticAlgorithm:
         ratios = 'elite_ratio', 'replicate_ratio', 'exploration_ratio'
         if not all(0 <= settings[k] <= 1 for k in ratios):
             raise ValueError(f'Not all ratios are in [0, 1]: {settings}')
+        if sum(settings[k] for k in ratios) > 1:
+            raise ValueError(f'Sum of all ratios cannot exceed 1: {sum(settings[k] for k in ratios)}')
 
         # validity of crossover-types
         crossover_types = 'index', 'slice', 'uniform'
