@@ -25,6 +25,9 @@ def ga_pool() -> GeneticAlgorithm:
     return GeneticAlgorithm(fitness, 3, 'float', [[0, 10], [3, 5], [0, 1]])
 
 
+"""TestObjects"""
+
+
 class TestGeneticAlgorithm:
     """Tests for the `GeneticAlgorithm`-object (from `src.ga`)."""
 
